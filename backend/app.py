@@ -23,9 +23,14 @@ load_dotenv()
 app = Flask(__name__, static_folder='../frontend', static_url_path='/')
 CORS(app)
 
-# Configure SQLite database (stored in the parent directory)
-basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
+# Database Configuration
+# For MySQL: mysql+pymysql://user:password@host:port/dbname
+# Default to SQLite if no DATABASE_URL is provided
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///' + os.path.join(basedir, 'database.db'))
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith('mysql'):
+    # Ensure pymysql is used for MySQL connections
+    if 'pymysql' not in app.config['SQLALCHEMY_DATABASE_URI']:
+        app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('mysql://', 'mysql+pymysql://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-secret-key')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-fallback-secret-key')
