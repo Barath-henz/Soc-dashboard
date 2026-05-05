@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOC Platform Enterprise</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- Leaflet.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i data-lucide="shield-alert" class="brand-icon"></i>
+                <h2>SOC Nexus</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-item active" onclick="switchTab('dashboard')"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                <a href="#incident-response" class="nav-item" onclick="switchTab('incident-response')"><i data-lucide="shield"></i> Incident Response</a>
+                <a href="#analytics" class="nav-item" onclick="switchTab('analytics')"><i data-lucide="bar-chart-2"></i> Analytics</a>
+                <a href="#" class="nav-item" id="logoutBtn"><i data-lucide="log-out"></i> Logout</a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar">A</div>
+                <div class="user-info">
+                    <span class="user-name">Admin</span>
+                    <span class="user-role">Security Analyst</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="search-bar">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="searchInput" placeholder="Search logs by IP, description...">
+                </div>
+                <div class="topbar-actions">
+                    <button class="glass-btn rbac-analyst" id="uploadBtn" onclick="openModal('uploadModal')"><i data-lucide="upload"></i> Upload Logs</button>
+                    <button class="glass-btn rbac-admin" id="simulateBtn" onclick="openModal('simulateModal')"><i data-lucide="zap"></i> Simulate Attack</button>
+                    <span class="status-indicator">
+                        <span class="pulse"></span> Live Monitoring
+                    </span>
+                    <button class="icon-btn"><i data-lucide="bell"></i></button>
+                </div>
+            </header>
+
+            <div class="dashboard-content tab-content active" id="dashboard-tab">
+                <!-- Stats Row -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon log-icon"><i data-lucide="server"></i></div>
+                        <div class="stat-details">
+                            <h3>Total Logs</h3>
+                            <p id="totalLogsCount">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon alert-icon"><i data-lucide="alert-triangle"></i></div>
+                        <div class="stat-details">
+                            <h3>Total Alerts</h3>
+                            <p id="totalAlertsCount">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card critical-bg">
+                        <div class="stat-icon critical-icon"><i data-lucide="shield-off"></i></div>
+                        <div class="stat-details">
+                            <h3>Open Critical Alerts</h3>
+                            <p id="criticalAlertsCount">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Layout -->
+                <div class="dashboard-grid">
+                    <!-- Chart Section -->
+                    <div class="glass-panel chart-panel">
+                        <div class="panel-header">
+                            <h3>Login Attempts Over Time</h3>
+                            <select id="timeRangeFilter" class="glass-select">
+                                <option value="15">Last 15 Mins</option>
+                                <option value="60">Last Hour</option>
+                            </select>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="loginChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Map Section -->
+                    <div class="glass-panel map-panel">
+                        <div class="panel-header">
+                            <h3>Live Threat Map</h3>
+                        </div>
+                        <div class="map-container" style="height: 300px; width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color);">
+                            <div id="worldMap" style="height: 100%; width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs Table Section -->
+                <div class="glass-panel logs-panel" style="margin-top: 24px;">
+                    <div class="panel-header">
+                        <h3>Recent Activity Logs</h3>
+                        <div class="filters">
+                            <select id="eventTypeFilter" class="glass-select">
+                                <option value="all">All Events</option>
+                                <option value="successful_login">Successful Login</option>
+                                <option value="failed_login">Failed Login</option>
+                                <option value="system_start">System Start</option>
+                                <option value="config_change">Config Change</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>IP Address</th>
+                                    <th>Event Type</th>
+                                    <th>Risk Score</th>
+                                    <th>Threat Tags</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody">
+                                <!-- Logs will be injected here via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Incident Response Tab -->
+            <div class="dashboard-content tab-content" id="incident-response-tab" style="display:none;">
+                <div class="glass-panel alerts-panel">
+                    <div class="panel-header">
+                        <h3>Incident Response Management</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Severity</th>
+                                    <th>Rule / MITRE</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Assignee</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="irTableBody">
+                                <!-- Alerts will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div class="dashboard-content tab-content" id="analytics-tab" style="display:none;">
+                <div class="dashboard-grid">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <h3>Top Attacking IPs</h3>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead><tr><th>IP Address</th><th>Attack Count</th></tr></thead>
+                                <tbody id="topIpsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <h3>Attacks by Country</h3>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead><tr><th>Country</th><th>Attack Count</th></tr></thead>
+                                <tbody id="topCountriesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="close" onclick="closeModal('uploadModal')">&times;</span>
+            <h2>Upload Logs (CSV)</h2>
+            <p style="color:var(--text-muted); margin-bottom: 1rem;">Upload historical logs to train the AI model and detect past threats.</p>
+            <input type="file" id="logFileInput" accept=".csv" class="glass-input" style="margin-bottom: 1rem;">
+            <button class="glass-btn" onclick="uploadLogs()">Upload & Analyze</button>
+        </div>
+    </div>
+
+    <div id="simulateModal" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="close" onclick="closeModal('simulateModal')">&times;</span>
+            <h2>Simulate Attack</h2>
+            <p style="color:var(--text-muted); margin-bottom: 1rem;">Generate synthetic logs to test SOC rules.</p>
+            <select id="attackTypeSelect" class="glass-select" style="margin-bottom: 1rem; width: 100%;">
+                <option value="brute_force">Brute Force Attack (T1110)</option>
+                <option value="ddos">DDoS / Traffic Spike (T1498)</option>
+            </select>
+            <button class="glass-btn" onclick="triggerSimulation()">Trigger Simulation</button>
+        </div>
+    </div>
+
+    <div id="resolveModal" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="close" onclick="closeModal('resolveModal')">&times;</span>
+            <h2>Resolve Incident</h2>
+            <input type="hidden" id="resolveAlertId">
+            <textarea id="resolveNotes" class="glass-input" rows="4" placeholder="Add resolution notes..." style="margin-bottom: 1rem; width: 100%;"></textarea>
+            <button class="glass-btn" onclick="submitResolve()">Mark as Resolved</button>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="script.js"></script>
+</body>
+</html>

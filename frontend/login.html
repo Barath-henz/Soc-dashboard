@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOC Nexus - Login</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+        }
+        .login-box {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .login-header i {
+            color: var(--accent-blue);
+            width: 48px;
+            height: 48px;
+            filter: drop-shadow(0 0 12px var(--accent-blue-glow));
+            margin-bottom: 16px;
+        }
+        .login-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .login-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .form-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .form-group input {
+            background: rgba(11, 14, 20, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        .form-group input:focus {
+            border-color: var(--accent-blue);
+        }
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+            margin-top: 8px;
+        }
+        .btn-primary:hover {
+            background: #2563EB;
+            transform: translateY(-2px);
+        }
+        .error-msg {
+            color: var(--color-danger);
+            font-size: 0.85rem;
+            text-align: center;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <i data-lucide="shield-alert"></i>
+                <h1>SOC Nexus</h1>
+                <p>Secure Operations Center</p>
+            </div>
+            
+            <div id="errorMsg" class="error-msg"></div>
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter your username" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password" autocomplete="new-password">
+            </div>
+
+            <button id="loginBtn" class="btn-primary">Sign In</button>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const API_BASE = 'http://127.0.0.1:5000';
+
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            if (!username || !password) {
+                errorMsg.textContent = 'Please enter both username and password.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('soc_token', data.token);
+                    localStorage.setItem('soc_username', data.username);
+                    localStorage.setItem('soc_role', data.role);
+                    window.location.href = 'index.html';
+                } else {
+                    errorMsg.textContent = data.error || 'Login failed.';
+                }
+            } catch (error) {
+                errorMsg.textContent = 'Network error. Is the server running?';
+            }
+        });
+        
+        // Check if already logged in
+        if (localStorage.getItem('soc_token')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
