@@ -43,7 +43,7 @@ Open:
 
 ## ☁️ Deployment
 
-Live Demo: https://your-app.onrender.com
+Live Demo:  https://soc-dashboard-4gsb.onrender.com
 
 ---
 
