@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY backend/ backend/
+COPY frontend/ frontend/
 
 # Set working directory to backend
 WORKDIR /soc/backend

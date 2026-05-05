@@ -19,7 +19,7 @@ from threat_intel import get_abuseipdb_score
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../frontend', static_url_path='/')
 CORS(app)
 
 # Configure SQLite database (stored in the parent directory)
@@ -43,6 +43,14 @@ limiter = Limiter(
 
 # Register Blueprints
 app.register_blueprint(auth_bp)
+
+@app.route('/')
+def index():
+    return app.send_static_file('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    return app.send_static_file('index.html')
 
 with app.app_context():
     try:
