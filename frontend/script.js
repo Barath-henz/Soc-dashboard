@@ -242,6 +242,45 @@ async function fetchAnalytics() {
     elements.topCountriesBody.innerHTML = data.countries.map(c => `<tr><td>${c.country}</td><td>${c.count}</td></tr>`).join('');
 }
 
+async function triggerSimulation() {
+    const attackType = document.getElementById('attackTypeSelect').value;
+    try {
+        const res = await fetch(`${API_BASE}/simulate`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ attack_type: attackType })
+        });
+        if(res.ok) {
+            alert('Simulation started successfully!');
+            closeModal('simulateModal');
+        } else {
+            alert('Simulation failed to start. Check backend logs.');
+        }
+    } catch (e) { 
+        console.error(e); 
+        alert('Network error when triggering simulation.');
+    }
+}
+
+async function uploadLogs() {
+    const fileInput = document.getElementById('logFileInput');
+    if (!fileInput.files.length) return alert('Select a file first');
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    try {
+        const res = await fetch(`${API_BASE}/logs/upload`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        if(res.ok) {
+            alert('Logs uploaded successfully!');
+            closeModal('uploadModal');
+            fetchLogs();
+        }
+    } catch (e) { console.error(e); }
+}
+
 function handleUnauthorized() {
     localStorage.clear();
     window.location.href = 'login.html';
@@ -252,4 +291,16 @@ function formatDate(iso) { return new Date(iso).toLocaleString(); }
 function getEventBadgeClass(type) { return type.includes('fail') ? 'badge-danger' : 'badge-info'; }
 
 document.getElementById('logoutBtn').addEventListener('click', handleUnauthorized);
+
+// Socket.IO Events
+socket.on('new_log', (log) => {
+    fetchStats();
+    fetchLogs();
+});
+
+socket.on('new_alert', (alert) => {
+    fetchStats();
+    fetchIncidents();
+});
+
 init();
