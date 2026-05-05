@@ -82,44 +82,50 @@ with app.app_context():
         import random
         import time
         from datetime import datetime
-        ips = ["192.168.1.5", "10.0.0.12", "172.16.0.22", "8.8.8.8", "192.168.1.100", "10.0.0.99", "203.0.113.45"]
-        events = ["successful_login", "failed_login", "system_start", "config_change", "data_export"]
+        import threading
         
-        while True:
-            try:
-                with app.app_context():
-                    ip = random.choice(ips)
-                    event = random.choice(events)
-                    
-                    geo_data = get_ip_geolocation(ip)
-                    threat_data = get_abuseipdb_score(ip)
-                    
-                    new_log = Log(
-                        timestamp=datetime.utcnow(),
-                        ip_address=ip,
-                        event_type=event,
-                        description=f"Automated background event: {event}",
-                        country=geo_data.get('country'),
-                        city=geo_data.get('city'),
-                        latitude=geo_data.get('lat'),
-                        longitude=geo_data.get('lon'),
-                        threat_tags=threat_data.get('threat_tags')
-                    )
-                    new_log.risk_score = ai_scorer.predict_score(new_log)
-                    
-                    db.session.add(new_log)
-                    db.session.commit()
-                    
-                    # Broadcast to connected clients
-                    emit_new_log(new_log.to_dict())
-                    # Run detection rules
-                    run_detection_rules(new_log)
-            except Exception as e:
-                print(f"Error in background generator: {e}")
+        def run():
+            ips = ["192.168.1.5", "10.0.0.12", "172.16.0.22", "8.8.8.8", "192.168.1.100", "10.0.0.99", "203.0.113.45"]
+            events = ["successful_login", "failed_login", "system_start", "config_change", "data_export"]
             
-            time.sleep(random.uniform(10, 30)) # Every 10-30 seconds
+            while True:
+                try:
+                    with app.app_context():
+                        ip = random.choice(ips)
+                        event = random.choice(events)
+                        
+                        geo_data = get_ip_geolocation(ip)
+                        threat_data = get_abuseipdb_score(ip)
+                        
+                        new_log = Log(
+                            timestamp=datetime.utcnow(),
+                            ip_address=ip,
+                            event_type=event,
+                            description=f"Automated background event: {event}",
+                            country=geo_data.get('country'),
+                            city=geo_data.get('city'),
+                            latitude=geo_data.get('lat'),
+                            longitude=geo_data.get('lon'),
+                            threat_tags=threat_data.get('threat_tags')
+                        )
+                        new_log.risk_score = ai_scorer.predict_score(new_log)
+                        
+                        db.session.add(new_log)
+                        db.session.commit()
+                        
+                        # Broadcast to connected clients
+                        emit_new_log(new_log.to_dict())
+                        # Run detection rules
+                        run_detection_rules(new_log)
+                except Exception as e:
+                    print(f"Error in background generator: {e}")
+                
+                time.sleep(random.uniform(5, 10)) # Faster: Every 5-10 seconds
 
-    socketio.start_background_task(background_log_generator)
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
+
+    background_log_generator()
 
 @app.route('/logs', methods=['POST'])
 @limiter.limit("200 per minute")
