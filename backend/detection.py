@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 from datetime import datetime, timedelta
-from models import db, Log, Alert
+from models import db, Log, Alert, Incident
 from alerts import send_email_alert
 from socket_events import emit_new_alert
 
@@ -66,7 +66,8 @@ def check_suspicious_ip(log_entry):
             severity="high",
             description=f"Access from known suspicious IP or high risk IP: {log_entry.ip_address} (Event: {log_entry.event_type})",
             mitre_id="T1078",
-            mitre_desc="Valid Accounts"
+            mitre_desc="Valid Accounts",
+            source_ip=log_entry.ip_address
         )
 
 def check_brute_force(log_entry):
@@ -94,7 +95,8 @@ def check_brute_force(log_entry):
                 severity="critical",
                 description=f"Detected {failed_attempts} failed login attempts from IP {log_entry.ip_address} within {BRUTE_FORCE_TIMEFRAME_MINUTES} minutes.",
                 mitre_id="T1110",
-                mitre_desc="Brute Force"
+                mitre_desc="Brute Force",
+                source_ip=log_entry.ip_address
             )
 
 def check_traffic_spike():
@@ -119,7 +121,7 @@ def check_traffic_spike():
                 mitre_desc="Network Denial of Service"
             )
 
-def create_alert(rule, severity, description, mitre_id=None, mitre_desc=None):
+def create_alert(rule, severity, description, mitre_id=None, mitre_desc=None, source_ip=None):
     new_alert = Alert(
         rule_triggered=rule,
         severity=severity,
@@ -132,8 +134,41 @@ def create_alert(rule, severity, description, mitre_id=None, mitre_desc=None):
     
     emit_new_alert(new_alert.to_dict())
 
+    # Automatically escalate high/critical alerts to incidents
+    if severity in ['high', 'critical']:
+        auto_escalate_to_incident(new_alert, source_ip)
+
     if severity == 'critical':
         send_email_alert(new_alert)
+
+def auto_escalate_to_incident(alert, source_ip):
+    """Automatically creates an incident for high-severity alerts."""
+    # Prevent duplicate incidents for the same IP/Type in a short window
+    time_threshold = datetime.utcnow() - timedelta(hours=1)
+    existing = Incident.query.filter(
+        Incident.alert_type == alert.rule_triggered,
+        Incident.source_ip == (source_ip or 'N/A'),
+        Incident.created_at >= time_threshold
+    ).first()
+
+    if not existing:
+        incident = Incident(
+            alert_type=alert.rule_triggered,
+            source_ip=source_ip or 'N/A',
+            severity=alert.severity,
+            status='open'
+        )
+        db.session.add(incident)
+        db.session.commit()
+        
+        # Add automated entry note
+        note = IncidentNote(
+            incident_id=incident.id,
+            author_id=1, # Default Admin
+            content=f"Incident automatically created from alert: {alert.description}"
+        )
+        db.session.add(note)
+        db.session.commit()
 
 def run_detection_rules(log_entry):
     check_suspicious_ip(log_entry)

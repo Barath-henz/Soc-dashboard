@@ -153,22 +153,31 @@
                 <div class="glass-panel alerts-panel">
                     <div class="panel-header">
                         <h3>Incident Response Management</h3>
+                        <div class="filters">
+                            <select id="incidentStatusFilter" class="glass-select" onchange="fetchIncidents()">
+                                <option value="all">All Status</option>
+                                <option value="open">Open</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="resolved">Resolved</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="table-container">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th>ID</th>
                                     <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Source IP</th>
                                     <th>Severity</th>
-                                    <th>Rule / MITRE</th>
-                                    <th>Description</th>
                                     <th>Status</th>
                                     <th>Assignee</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="irTableBody">
-                                <!-- Alerts will be injected here -->
+                            <tbody id="incidentsTableBody">
+                                <!-- Incidents will be injected here -->
                             </tbody>
                         </table>
                     </div>
@@ -230,13 +239,22 @@
         </div>
     </div>
 
-    <div id="resolveModal" class="modal">
-        <div class="modal-content glass-panel">
-            <span class="close" onclick="closeModal('resolveModal')">&times;</span>
-            <h2>Resolve Incident</h2>
-            <input type="hidden" id="resolveAlertId">
-            <textarea id="resolveNotes" class="glass-input" rows="4" placeholder="Add resolution notes..." style="margin-bottom: 1rem; width: 100%;"></textarea>
-            <button class="glass-btn" onclick="submitResolve()">Mark as Resolved</button>
+    <!-- Incident Detail Modal -->
+    <div id="incidentDetailModal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 700px;">
+            <span class="close" onclick="closeModal('incidentDetailModal')">&times;</span>
+            <h2>Incident Details</h2>
+            <div id="incidentDetailContent" class="timeline-container">
+                <!-- Details and timeline will be injected here -->
+            </div>
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+            <h3>Investigation Notes</h3>
+            <div id="incidentNotesList" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto;"></div>
+            <textarea id="newIncidentNote" class="glass-input" rows="3" placeholder="Add investigation notes..." style="width: 100%; margin-bottom: 10px;"></textarea>
+            <div class="modal-actions">
+                <button class="glass-btn btn-success" onclick="submitIncidentNote()">Add Note</button>
+                <button id="resolveBtnModal" class="glass-btn btn-warning" onclick="resolveIncidentAction()">Resolve Incident</button>
+            </div>
         </div>
     </div>
 

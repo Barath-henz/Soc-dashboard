@@ -73,3 +73,49 @@ class Alert(db.Model):
             'status': self.status,
             'notes': self.notes
         }
+
+class Incident(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    alert_type = db.Column(db.String(100), nullable=False)
+    source_ip = db.Column(db.String(50), nullable=False)
+    severity = db.Column(db.String(20), nullable=False) # low, medium, high, critical
+    status = db.Column(db.String(20), default='open') # open, in_progress, resolved
+    assignee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    
+    assignee = db.relationship('User', backref=db.backref('assigned_incidents', lazy=True))
+    notes = db.relationship('IncidentNote', backref='incident', lazy=True, cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'alert_type': self.alert_type,
+            'source_ip': self.source_ip,
+            'severity': self.severity,
+            'status': self.status,
+            'assignee_id': self.assignee_id,
+            'assignee_name': self.assignee.username if self.assignee else 'Unassigned',
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+            'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
+            'notes': [note.to_dict() for note in self.notes]
+        }
+
+class IncidentNote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    incident_id = db.Column(db.Integer, db.ForeignKey('incident.id'), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    author = db.relationship('User')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'author_name': self.author.username,
+            'content': self.content,
+            'timestamp': self.timestamp.isoformat()
+        }

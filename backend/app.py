@@ -15,6 +15,7 @@ from detection import run_detection_rules, ai_scorer
 from socket_events import socketio, emit_new_log
 from geo import get_ip_geolocation
 from threat_intel import get_abuseipdb_score
+from ir_routes import ir_bp
 
 # Load environment variables
 load_dotenv()
@@ -43,6 +44,7 @@ limiter = Limiter(
 
 # Register Blueprints
 app.register_blueprint(auth_bp)
+app.register_blueprint(ir_bp)
 
 @app.route('/')
 def index():
