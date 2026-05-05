@@ -23,14 +23,8 @@ load_dotenv()
 app = Flask(__name__, static_folder='../frontend', static_url_path='/')
 CORS(app)
 
-# Database Configuration
-# For MySQL: mysql+pymysql://user:password@host:port/dbname
-# Default to SQLite if no DATABASE_URL is provided
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///' + os.path.join(basedir, 'database.db'))
-if app.config['SQLALCHEMY_DATABASE_URI'].startswith('mysql'):
-    # Ensure pymysql is used for MySQL connections
-    if 'pymysql' not in app.config['SQLALCHEMY_DATABASE_URI']:
-        app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('mysql://', 'mysql+pymysql://')
+# Configure SQLite database (stored locally in the backend directory)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-secret-key')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-fallback-secret-key')
@@ -58,6 +52,10 @@ def index():
 @app.route('/dashboard')
 def dashboard():
     return app.send_static_file('index.html')
+
+@app.route('/health')
+def health():
+    return jsonify({'status': 'healthy'}), 200
 
 with app.app_context():
     try:
