@@ -19,7 +19,7 @@ COPY frontend/ frontend/
 WORKDIR /soc/backend
 
 # Expose API port
-EXPOSE 5000
+EXPOSE $PORT
 
-# Start server using Gunicorn and Eventlet for WebSockets
-CMD ["gunicorn", "-k", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker", "-w", "1", "-b", "0.0.0.0:5000", "app:app"]
+# Start server using Gunicorn and Gevent for WebSockets, using Render's $PORT
+CMD ["sh", "-c", "gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 -b 0.0.0.0:$PORT app:app"]
