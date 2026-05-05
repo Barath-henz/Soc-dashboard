@@ -11,3 +11,5 @@ scikit-learn
 pandas
 python-dateutil
 werkzeug
+gunicorn[eventlet]
+eventlet==0.33.3
