@@ -1,4 +1,4 @@
-FROM python:3.14-slim
+FROM python:3.11-slim
 
 # Upgrade OS packages to patch vulnerabilities (e.g. glibc)
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
