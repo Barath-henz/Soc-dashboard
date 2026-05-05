@@ -66,10 +66,11 @@ with app.app_context():
     db.create_all()
     
     # Create default admin if not exists
-    if not User.query.filter_by(username='admin').first():
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
         admin = User(username='admin', role='admin')
-        admin.password_hash = bcrypt.generate_password_hash('admin123').decode('utf-8')
         db.session.add(admin)
+    admin.password_hash = bcrypt.generate_password_hash('Barath@Henz234').decode('utf-8')
     if not User.query.filter_by(username='viewer').first():
         viewer = User(username='viewer', role='viewer')
         viewer.password_hash = bcrypt.generate_password_hash('viewer123').decode('utf-8')
